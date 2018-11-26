@@ -3,7 +3,7 @@ import javafx.util.Pair;
 import java.util.*;
 
 public class Main {
-	public static final boolean DEBUG_MODE = true;
+	private static final boolean DEBUG_MODE = true;
 
 	private static void checkRegExp(String regExp) throws Exception {
 		int bracketStack = 0;
@@ -78,15 +78,15 @@ public class Main {
 			if (tokens.size() > 1 && tokens.get(1).equals("*")) {
 				aut1 = convertTokensToAutomata(tokens.subList(2, tokens.size()));
 				aut.getFinish().addTransition(aut.getStart(), '$');
-				aut.getFinish().setAccepted(false);
-				aut.getStart().setAccepted(true);
+				aut.getFinish().setAccepting(false);
+				aut.getStart().setAccepting(true);
 				aut.setFinish(aut.getStart());
 			} else {
 				aut1 = convertTokensToAutomata(tokens.subList(1, tokens.size()));
 			}
 			if (aut1 != null) {
 				aut.getFinish().addTransition(aut1.getStart(), '$');
-				aut.getFinish().setAccepted(false);
+				aut.getFinish().setAccepting(false);
 				aut.setFinish(aut1.getFinish());
 			}
 		} else {
@@ -97,26 +97,21 @@ public class Main {
 			aut.getStart().addTransition(aut2.getStart(), '$');
 			aut1.getFinish().addTransition(aut.getFinish(), '$');
 			aut2.getFinish().addTransition(aut.getFinish(), '$');
-			aut1.getFinish().setAccepted(false);
-			aut2.getFinish().setAccepted(false);
+			aut1.getFinish().setAccepting(false);
+			aut2.getFinish().setAccepting(false);
 		}
 		return aut;
 	}
 
-	private static Automata determineAutomata(Automata aut) {
-		Automata ans = new Automata();
-		Map<Node, Integer> ids = new HashMap<>();
+	private static void enumerateAutomata(Automata aut, Map<Node, Integer> ids, List<Node> nodeById, Set<Character> alphabet) {
 		Queue<Node> q = new LinkedList<>();
-		Set<Pair<Node, Character>> trns;
-		List<Node> nodeById = new ArrayList<>();
-		Set<Character> alphabet = new HashSet<>();
 		int id = 1;
 		q.add(aut.getStart());
 		ids.put(aut.getStart(), 0);
 		nodeById.add(aut.getStart());
 		while (!q.isEmpty()) {
 			Node temp = q.remove();
-			trns = temp.getTransitions();
+			Set<Pair<Node, Character>> trns = temp.getTransitions();
 			for (Pair<Node, Character> trn : trns) {
 				if (trn.getValue() != '$') alphabet.add(trn.getValue());
 				if (!ids.containsKey(trn.getKey())) {
@@ -127,27 +122,54 @@ public class Main {
 				}
 			}
 		}
+	}
+
+	private static boolean epsilonExpand(Set<Integer> genSt, Map<Node, Integer> ids, List<Node> nodeById) {
+		Set<Pair<Node, Character>> trns;
+		Set<Integer> origGenSt = genSt;
+		boolean expand, acc = false;
+		do {
+			expand = false;
+			Set<Integer> genStClone = new HashSet<>(genSt);
+			for (Integer it : genSt) {
+				acc |= nodeById.get(it).isAccepting();
+				trns = nodeById.get(it).getTransitions();
+				for (Pair<Node, Character> trn : trns) {
+					if (trn.getValue() == '$' && !genSt.contains(ids.get(trn.getKey()))) {
+						genStClone.add(ids.get(trn.getKey()));
+						expand = true;
+					}
+				}
+			}
+			genSt = genStClone;
+		} while (expand);
+		origGenSt.clear();
+		origGenSt.addAll(genSt);
+		return acc;
+	}
+
+	private static Automata determineAutomata(Automata aut) {
+		Map<Node, Integer> ids = new HashMap<>();
+		List<Node> nodeById = new ArrayList<>();
+		Set<Character> alphabet = new HashSet<>();
+		enumerateAutomata(aut, ids, nodeById, alphabet);
+		Automata ans = new Automata();
+		Set<Pair<Node, Character>> trns;
 		Set<Integer> genSt = new HashSet<>();
 		Map<Set<Integer>, Integer> stIds = new HashMap<>();
-		Queue<Set<Integer>> q2 = new LinkedList<>();
+		Queue<Set<Integer>> q = new LinkedList<>();
 		Map<Set<Integer>, Node> nodeBySet = new HashMap<>();
 		Node tempNode;
-		boolean acc = aut.getStart().isAccepted();
+		boolean acc;
 		genSt.add(0);
-		trns = aut.getStart().getTransitions();
-		for (Pair<Node, Character> trn : trns) {
-			if (trn.getValue() == '$') {
-				acc |= trn.getKey().isAccepted();
-				genSt.add(ids.get(trn.getKey()));
-			}
-		}
-		id = 1;
-		q2.add(genSt);
+		acc = epsilonExpand(genSt, ids, nodeById);
+		int id = 1;
+		q.add(genSt);
 		stIds.put(genSt, 0);
 		nodeBySet.put(genSt, ans.getStart());
-		if (acc) ans.getStart().setAccepted(true);
-		while (!q2.isEmpty()) {
-			Set<Integer> temp = q2.remove();
+		if (acc) ans.getStart().setAccepting(true);
+		while (!q.isEmpty()) {
+			Set<Integer> temp = q.remove();
 			if (DEBUG_MODE) System.out.println("New State: " + temp);
 			for (Character c : alphabet) {
 				genSt = new HashSet<>();
@@ -159,45 +181,96 @@ public class Main {
 						}
 					}
 				}
-				boolean expand;
-				acc = false;
-				do {
-					expand = false;
-					Set<Integer> genStClone = new HashSet<>(genSt);
-					for (Integer it : genSt) {
-						acc |= nodeById.get(it).isAccepted();
-						trns = nodeById.get(it).getTransitions();
-						for (Pair<Node, Character> trn : trns) {
-							if (trn.getValue() == '$' && !genSt.contains(ids.get(trn.getKey()))) {
-								genStClone.add(ids.get(trn.getKey()));
-								expand = true;
-							}
-						}
-					}
-					genSt = genStClone;
-				} while (expand);
+				acc = epsilonExpand(genSt, ids, nodeById);
 				if (!genSt.isEmpty()) {
 					if (!stIds.containsKey(genSt)) {
 						stIds.put(genSt, id);
 						id++;
-						q2.add(genSt);
+						q.add(genSt);
 						tempNode = new Node();
 						nodeBySet.put(genSt, tempNode);
 					} else tempNode = nodeBySet.get(genSt);
-					if (DEBUG_MODE) {
-						System.out.println("Letter: " + c + "\n" + genSt);
-					}
+					if (DEBUG_MODE) System.out.println("Letter: " + c + "\n" + genSt);
 					nodeBySet.get(temp).addTransition(tempNode, c);
-					if (acc) tempNode.setAccepted(true);
+					if (acc) tempNode.setAccepting(true);
 				}
 			}
 		}
 		return ans;
 	}
 
+	private static Automata removeRedundancyAutomata(Automata aut) {
+		// http://pages.cs.wisc.edu/~shuchi/courses/520-S08/handouts/Lec7.pdf
+		Automata ans = new Automata();
+		Map<Node, Integer> ids = new HashMap<>();
+		List<Node> nodeById = new ArrayList<>();
+		Set<Character> alphabet = new HashSet<>();
+
+		enumerateAutomata(aut, ids, nodeById, alphabet);
+		Queue<Pair<Integer, Integer>> q = new LinkedList<>();
+		Set<Pair<Integer, Integer>> distinguishable = new HashSet<>();
+		Set<Integer> acc = new HashSet<>(), nonAcc = new HashSet<>(), visited = new HashSet<>();
+		Map<Character, Set<Node>> rev;
+		int x, y;
+		for (Node nd : nodeById) (nd.isAccepting() ? acc : nonAcc).add(ids.get(nd));
+		for (int i : acc) {
+			for (int j : nonAcc) {
+				distinguishable.add(new Pair<>(i, j));
+				q.add(new Pair<>(i, j));
+			}
+		}
+		while (!q.isEmpty()) {
+			x = q.peek().getKey();
+			y = q.remove().getValue();
+			for (char c : alphabet) {
+				if (nodeById.get(x).getRevTransitions().get(c) == null || nodeById.get(y).getRevTransitions().get(c) == null)
+					continue;
+				for (Node i : nodeById.get(x).getRevTransitions().get(c)) {
+					for (Node j : nodeById.get(y).getRevTransitions().get(c)) {
+						if (!distinguishable.contains(new Pair<>(ids.get(i), ids.get(j)))) {
+							distinguishable.add(new Pair<>(ids.get(i), ids.get(j)));
+							q.add(new Pair<>(ids.get(i), ids.get(j)));
+						}
+					}
+				}
+			}
+		}
+		for (int i = 0; i < ids.size(); i++) {
+			if (!visited.contains(i)) {
+				visited.add(i);
+				for (int j = i + 1; j < ids.size(); j++) {
+					if (!distinguishable.contains(new Pair<>(i, j)) && !distinguishable.contains(new Pair<>(j, i))) {
+						visited.add(j);
+						rev = nodeById.get(j).getRevTransitions();
+						if (DEBUG_MODE) System.out.println(i + " = " + j + " Concatenation");
+						for (char c : alphabet) {
+							if (rev.get(c) == null) continue;
+							List<Node> temp = new ArrayList<>(rev.get(c));
+							for (Node nd : temp) {
+								nd.removeTransition(nodeById.get(j), c);
+								nd.addTransition(nodeById.get(i), c);
+							}
+						}
+						Set<Pair<Node, Character>> temp = new HashSet<>(nodeById.get(j).getTransitions());
+						for (Pair<Node, Character> it : temp) {
+							nodeById.get(i).addTransition(it.getKey(), it.getValue());
+							nodeById.get(j).removeTransition(it.getKey(), it.getValue());
+						}
+					}
+				}
+			}
+		}
+		if (DEBUG_MODE) System.out.println("DIFF: {" + distinguishable + "} :END");
+		return aut;
+	}
+
 	private static Automata simplifyAutomata(Automata aut) {
-		return determineAutomata(aut);
-		//return deRedoundAutomata(determineAutomata(aut));
+		if (DEBUG_MODE) {
+			aut = determineAutomata(aut);
+			System.out.println(aut.toString());
+			return removeRedundancyAutomata(aut);
+		}
+		return removeRedundancyAutomata(determineAutomata(aut));
 	}
 
 	public static void main(String[] args) {
