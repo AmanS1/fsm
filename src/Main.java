@@ -196,12 +196,12 @@ public class Main {
 				}
 			}
 		}
+		ans.setDeterministic(true);
 		return ans;
 	}
 
 	private static Automata removeRedundancyAutomata(Automata aut) {
 		// http://pages.cs.wisc.edu/~shuchi/courses/520-S08/handouts/Lec7.pdf
-		Automata ans = new Automata();
 		Map<Node, Integer> ids = new HashMap<>();
 		List<Node> nodeById = new ArrayList<>();
 		Set<Character> alphabet = new HashSet<>();
@@ -273,15 +273,35 @@ public class Main {
 		return removeRedundancyAutomata(determineAutomata(aut));
 	}
 
+	private static boolean checkAcceptability(Automata aut, String input) throws Exception {
+		if (!aut.isDeterministic()) throw new Exception("This automata is not deterministic");
+		boolean trans;
+		Node nd = aut.getStart();
+		for (int i = 0; i < input.length(); i++) {
+			trans = false;
+			for (Pair<Node, Character> j : nd.getTransitions()) {
+				if (j.getValue() == input.charAt(i)) {
+					nd = j.getKey();
+					trans = true;
+					break;
+				}
+			}
+			if (!trans) return false;
+		}
+		return nd.isAccepting();
+	}
+
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);
 		String regExp = in.nextLine();
+		String testString = in.nextLine();
 		try {
 			checkRegExp(regExp);
 			Automata aut = convertRegExpToAutomata(regExp);
 			System.out.println(aut.toString());
 			aut = simplifyAutomata(aut);
 			System.out.println(aut.toString());
+			System.out.println(checkAcceptability(aut, testString));
 		} catch (Exception e) {
 			System.out.println(e);
 		}

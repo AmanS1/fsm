@@ -4,6 +4,16 @@ import java.util.*;
 
 public class Automata {
 	private static final boolean DEBUG_MODE = true;
+	private boolean deterministic;
+
+	public boolean isDeterministic() {
+		return deterministic;
+	}
+
+	public void setDeterministic(boolean deterministic) {
+		this.deterministic = deterministic;
+	}
+
 	private Node start, finish;
 
 	public Node getStart() {
@@ -21,6 +31,7 @@ public class Automata {
 	public Automata() {
 		start = new Node(false);
 		finish = new Node(true);
+		deterministic = false;
 	}
 
 	public Automata(char c) {
