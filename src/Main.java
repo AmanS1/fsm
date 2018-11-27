@@ -30,18 +30,18 @@ public class Main {
 			throw new Exception("Empty subexpression with Alternation at index " + regExp.length());
 	}
 
-	private static Automata convertRegExpToAutomata(String regExp) {
+	private static Automaton convertRegExpToAutomaton(String regExp) {
 		/*
 		Brackets		First Priority
 		Kleene Star		Second Priority
 		Concatenation	Third Priority
 		Alternative		Fourth Priority
 		*/
-		Automata aut;
+		Automaton aut;
 		List<String> tokens = new ArrayList<>();
 		int left = 0, bracketStack = 0;
 		if (regExp.length() == 1) {
-			return new Automata(regExp.charAt(0));
+			return new Automaton(regExp.charAt(0));
 		}
 		for (int i = 0; i < regExp.length(); i++) {
 			if (regExp.charAt(i) == '(') {
@@ -56,16 +56,16 @@ public class Main {
 				tokens.add("" + regExp.charAt(i));
 			}
 		}
-		aut = convertTokensToAutomata(tokens);
+		aut = convertTokensToAutomaton(tokens);
 		return aut;
 	}
 
-	private static Automata convertTokensToAutomata(List<String> tokens) {
-		Automata aut, aut1, aut2;
+	private static Automaton convertTokensToAutomaton(List<String> tokens) {
+		Automaton aut, aut1, aut2;
 		int posAlt = -1;
 		if (tokens.size() == 0) return null;
 		if (tokens.size() == 1) {
-			return convertRegExpToAutomata(tokens.get(0));
+			return convertRegExpToAutomaton(tokens.get(0));
 		}
 		for (int i = 0; i < tokens.size(); i++) {
 			if (tokens.get(i).equals("|")) {
@@ -74,15 +74,15 @@ public class Main {
 			}
 		}
 		if (posAlt < 0) {
-			aut = convertRegExpToAutomata(tokens.get(0));
+			aut = convertRegExpToAutomaton(tokens.get(0));
 			if (tokens.size() > 1 && tokens.get(1).equals("*")) {
-				aut1 = convertTokensToAutomata(tokens.subList(2, tokens.size()));
+				aut1 = convertTokensToAutomaton(tokens.subList(2, tokens.size()));
 				aut.getFinish().addTransition(aut.getStart(), '$');
 				aut.getFinish().setAccepting(false);
 				aut.getStart().setAccepting(true);
 				aut.setFinish(aut.getStart());
 			} else {
-				aut1 = convertTokensToAutomata(tokens.subList(1, tokens.size()));
+				aut1 = convertTokensToAutomaton(tokens.subList(1, tokens.size()));
 			}
 			if (aut1 != null) {
 				aut.getFinish().addTransition(aut1.getStart(), '$');
@@ -90,9 +90,9 @@ public class Main {
 				aut.setFinish(aut1.getFinish());
 			}
 		} else {
-			aut1 = convertTokensToAutomata(tokens.subList(0, posAlt));
-			aut2 = convertTokensToAutomata(tokens.subList(posAlt + 1, tokens.size()));
-			aut = new Automata();
+			aut1 = convertTokensToAutomaton(tokens.subList(0, posAlt));
+			aut2 = convertTokensToAutomaton(tokens.subList(posAlt + 1, tokens.size()));
+			aut = new Automaton();
 			aut.getStart().addTransition(aut1.getStart(), '$');
 			aut.getStart().addTransition(aut2.getStart(), '$');
 			aut1.getFinish().addTransition(aut.getFinish(), '$');
@@ -103,7 +103,7 @@ public class Main {
 		return aut;
 	}
 
-	private static void enumerateAutomata(Automata aut, Map<Node, Integer> ids, List<Node> nodeById, Set<Character> alphabet) {
+	private static void enumerateAutomaton(Automaton aut, Map<Node, Integer> ids, List<Node> nodeById, Set<Character> alphabet) {
 		Queue<Node> q = new LinkedList<>();
 		int id = 1;
 		q.add(aut.getStart());
@@ -148,12 +148,12 @@ public class Main {
 		return acc;
 	}
 
-	private static Automata determineAutomata(Automata aut) {
+	private static Automaton determineAutomaton(Automaton aut) {
 		Map<Node, Integer> ids = new HashMap<>();
 		List<Node> nodeById = new ArrayList<>();
 		Set<Character> alphabet = new HashSet<>();
-		enumerateAutomata(aut, ids, nodeById, alphabet);
-		Automata ans = new Automata();
+		enumerateAutomaton(aut, ids, nodeById, alphabet);
+		Automaton ans = new Automaton();
 		Set<Pair<Node, Character>> trns;
 		Set<Integer> genSt = new HashSet<>();
 		Map<Set<Integer>, Integer> stIds = new HashMap<>();
@@ -200,13 +200,13 @@ public class Main {
 		return ans;
 	}
 
-	private static Automata removeRedundancyAutomata(Automata aut) {
+	private static Automaton removeRedundancyAutomaton(Automaton aut) {
 		// http://pages.cs.wisc.edu/~shuchi/courses/520-S08/handouts/Lec7.pdf
 		Map<Node, Integer> ids = new HashMap<>();
 		List<Node> nodeById = new ArrayList<>();
 		Set<Character> alphabet = new HashSet<>();
 
-		enumerateAutomata(aut, ids, nodeById, alphabet);
+		enumerateAutomaton(aut, ids, nodeById, alphabet);
 		Queue<Pair<Integer, Integer>> q = new LinkedList<>();
 		Set<Pair<Integer, Integer>> distinguishable = new HashSet<>();
 		Set<Integer> acc = new HashSet<>(), nonAcc = new HashSet<>(), visited = new HashSet<>();
@@ -264,17 +264,17 @@ public class Main {
 		return aut;
 	}
 
-	private static Automata simplifyAutomata(Automata aut) {
+	private static Automaton simplifyAutomaton(Automaton aut) {
 		if (DEBUG_MODE) {
-			aut = determineAutomata(aut);
+			aut = determineAutomaton(aut);
 			System.out.println(aut.toString());
-			return removeRedundancyAutomata(aut);
+			return removeRedundancyAutomaton(aut);
 		}
-		return removeRedundancyAutomata(determineAutomata(aut));
+		return removeRedundancyAutomaton(determineAutomaton(aut));
 	}
 
-	private static boolean checkAcceptability(Automata aut, String input) throws Exception {
-		if (!aut.isDeterministic()) throw new Exception("This automata is not deterministic");
+	private static boolean checkAcceptability(Automaton aut, String input) throws Exception {
+		if (!aut.isDeterministic()) throw new Exception("This automaton is not deterministic");
 		boolean trans;
 		Node nd = aut.getStart();
 		for (int i = 0; i < input.length(); i++) {
@@ -291,17 +291,97 @@ public class Main {
 		return nd.isAccepting();
 	}
 
+	private static String convertAutomatonToRegExp(Automaton aut) throws IndexOutOfBoundsException {
+		Map<Node, Integer> ids = new HashMap<>();
+		List<Node> nodeById = new ArrayList<>();
+		Set<Character> alphabet = new HashSet<>();
+		enumerateAutomaton(aut, ids, nodeById, alphabet);
+		Set<String> temp;
+		int n = ids.size();
+		enumerateAutomaton(aut, ids, nodeById, alphabet);
+		List<List<List<String>>> substrings = new ArrayList<>();
+		List<List<List<Boolean>>> alternation = new ArrayList<>();
+		for (int k = 0; k < n + 1; k++) {
+			substrings.add(new ArrayList<>());
+			alternation.add(new ArrayList<>());
+			for (int i = 0; i < n; i++) {
+				substrings.get(k).add(new ArrayList<>());
+				alternation.get(k).add(new ArrayList<>());
+			}
+		}
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				temp = new HashSet<>();
+				Set<Pair<Node, Character>> trns = nodeById.get(i).getTransitions();
+				for (Pair<Node, Character> trn : trns) {
+					if (ids.get(trn.getKey()) == j) {
+						temp.add(String.valueOf(trn.getValue()));
+					}
+				}
+				if (i == j) temp.add("$");
+				substrings.get(0).get(i).add(String.join("|", temp));
+				alternation.get(0).get(i).add(temp.size() > 1);
+				if (DEBUG_MODE) {
+					System.out.println("temp: " + i + " " + j + " " + temp);
+					System.out.println("{" + String.join("|", temp) + "} " + alternation.get(0).get(i).get(j));
+				}
+			}
+		}
+		for (int k = 0; k < n; k++) {
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					temp = new HashSet<>();
+					if (substrings.get(k).get(i).get(j).length() != 0) temp.add(substrings.get(k).get(i).get(j));
+					if (substrings.get(k).get(i).get(k).length() != 0 && substrings.get(k).get(k).get(j).length() != 0 &&
+							substrings.get(k).get(k).get(k).length() != 0) {
+						String s1 = substrings.get(k).get(i).get(k), s2 = substrings.get(k).get(k).get(j),
+								s = substrings.get(k).get(k).get(k);
+						if (alternation.get(k).get(k).get(k) && !(s1.equals("$") && s2.equals("$")))
+							s = String.format("(%s)", s);
+						if (alternation.get(k).get(i).get(k) && !(s.equals("$") && s2.equals("$")))
+							s1 = String.format("(%s)", s1);
+						if (alternation.get(k).get(k).get(j) && !(s.equals("$") && s1.equals("$")))
+							s2 = String.format("(%s)", s2);
+						if (s1.equals("$") && !(s.equals("$") && s2.equals("$"))) s1 = "";
+						if (s2.equals("$")) s2 = "";
+						if (s.equals("$"))
+							temp.add(String.format("%s%s", s1, s2));
+						else {
+							temp.add(String.format("%s%s*%s", s1, s, s2));
+						}
+					}
+					substrings.get(k + 1).get(i).add(String.join("|", temp));
+					alternation.get(k + 1).get(i).add(temp.size() > 1);
+					if (DEBUG_MODE) {
+						System.out.println("temp: " + k + " " + i + " " + j + " " + temp);
+						System.out.println("{" + String.join("|", temp) + "} " + alternation.get(0).get(i).get(j));
+					}
+				}
+			}
+		}
+		Set<Integer> acc = new HashSet<>();
+		temp = new HashSet<>();
+		for (Node nd : nodeById) if (nd.isAccepting()) acc.add(ids.get(nd));
+		for (int i : acc) {
+			temp.add(substrings.get(n).get(0).get(i));
+		}
+		return String.join("|", temp);
+	}
+
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);
 		String regExp = in.nextLine();
-		String testString = in.nextLine();
+		String testString;
+		//testString = in.nextLine();
 		try {
 			checkRegExp(regExp);
-			Automata aut = convertRegExpToAutomata(regExp);
+			Automaton aut = convertRegExpToAutomaton(regExp);
 			System.out.println(aut.toString());
-			aut = simplifyAutomata(aut);
+			aut = simplifyAutomaton(aut);
 			System.out.println(aut.toString());
-			System.out.println(checkAcceptability(aut, testString));
+			//System.out.println(checkAcceptability(aut, testString));
+			testString = convertAutomatonToRegExp(aut);
+			System.out.println("RegExp: " + testString);
 		} catch (Exception e) {
 			System.out.println(e);
 		}
