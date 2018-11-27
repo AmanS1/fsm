@@ -264,7 +264,22 @@ public class Main {
 		return aut;
 	}
 
+	private static void addDummyState(Automaton aut) {
+		Node dummy = new Node();
+		Map<Node, Integer> ids = new HashMap<>();
+		List<Node> nodeById = new ArrayList<>();
+		Set<Character> alphabet = new HashSet<>();
+		enumerateAutomaton(aut, ids, nodeById, alphabet);
+		for (char c : alphabet) {
+			for (Node nd : nodeById) {
+				nd.addTransition(dummy, c);
+			}
+			dummy.addTransition(dummy, c);
+		}
+	}
+
 	private static Automaton simplifyAutomaton(Automaton aut) {
+		addDummyState(aut);
 		if (DEBUG_MODE) {
 			aut = determineAutomaton(aut);
 			System.out.println(aut.toString());
