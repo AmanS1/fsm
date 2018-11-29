@@ -30,19 +30,15 @@ public class Main {
 			throw new Exception("Empty subexpression with Alternation at index " + regExp.length());
 	}
 
-	private static Automaton convertRegExpToAutomaton(String regExp) {
+	private static List<String> tokenize(String regExp) {
 		/*
 		Brackets		First Priority
 		Kleene Star		Second Priority
 		Concatenation	Third Priority
 		Alternative		Fourth Priority
 		*/
-		Automaton aut;
 		List<String> tokens = new ArrayList<>();
 		int left = 0, bracketStack = 0;
-		if (regExp.length() == 1) {
-			return new Automaton(regExp.charAt(0));
-		}
 		for (int i = 0; i < regExp.length(); i++) {
 			if (regExp.charAt(i) == '(') {
 				if (bracketStack == 0) left = i + 1;
@@ -56,8 +52,15 @@ public class Main {
 				tokens.add("" + regExp.charAt(i));
 			}
 		}
-		aut = convertTokensToAutomaton(tokens);
-		return aut;
+		return tokens;
+	}
+
+	private static Automaton convertRegExpToAutomaton(String regExp) {
+		if (regExp.length() == 1) {
+			return new Automaton(regExp.charAt(0));
+		}
+		List<String> tokens = tokenize(regExp);
+		return convertTokensToAutomaton(tokens);
 	}
 
 	private static Automaton convertTokensToAutomaton(List<String> tokens) {
@@ -124,7 +127,7 @@ public class Main {
 		}
 	}
 
-	private static boolean epsilonExpand(Set<Integer> genSt, Map<Node, Integer> ids, List<Node> nodeById) {
+	private static boolean stateEpsilonExpand(Set<Integer> genSt, Map<Node, Integer> ids, List<Node> nodeById) {
 		Set<Pair<Node, Character>> trns;
 		Set<Integer> origGenSt = genSt;
 		boolean expand, acc = false;
@@ -162,7 +165,7 @@ public class Main {
 		Node tempNode;
 		boolean acc;
 		genSt.add(0);
-		acc = epsilonExpand(genSt, ids, nodeById);
+		acc = stateEpsilonExpand(genSt, ids, nodeById);
 		int id = 1;
 		q.add(genSt);
 		stIds.put(genSt, 0);
@@ -181,7 +184,7 @@ public class Main {
 						}
 					}
 				}
-				acc = epsilonExpand(genSt, ids, nodeById);
+				acc = stateEpsilonExpand(genSt, ids, nodeById);
 				if (!genSt.isEmpty()) {
 					if (!stIds.containsKey(genSt)) {
 						stIds.put(genSt, id);
@@ -306,7 +309,33 @@ public class Main {
 		return nd.isAccepting();
 	}
 
-	private static String convertAutomatonToRegExp(Automaton aut) throws IndexOutOfBoundsException {
+	private static String removeEpsilonAlternation(String s) {
+		StringBuilder ans = new StringBuilder();
+		List<String> tokens = tokenize(s);
+		for (int i = 0; i < tokens.size(); i++) {
+			if (tokens.get(i).equals("$") && (i == 0 || tokens.get(i - 1).equals("|")) && (i + 1 >= tokens.size() || tokens.get(i + 1).equals("|"))) {
+				if (i + 1 < tokens.size() && tokens.get(i + 1).equals("|")) {
+					tokens.remove(i + 1);
+					tokens.remove(i);
+				} else {
+					tokens.remove(i);
+					if (i > 0 && tokens.get(i - 1).equals("|")) tokens.remove(i - 1);
+				}
+			}
+		}
+		for (String token : tokens) ans.append(token);
+		return ans.toString();
+	}
+
+	private static boolean hasAlternation(String s) {
+		List<String> tokens = tokenize(s);
+		for (String token : tokens) {
+			if (token.equals("|")) return true;
+		}
+		return false;
+	}
+
+	private static String convertAutomatonToRegExp(Automaton aut) {
 		Map<Node, Integer> ids = new HashMap<>();
 		List<Node> nodeById = new ArrayList<>();
 		Set<Character> alphabet = new HashSet<>();
@@ -346,30 +375,52 @@ public class Main {
 			for (int i = 0; i < n; i++) {
 				for (int j = 0; j < n; j++) {
 					temp = new HashSet<>();
-					if (substrings.get(k).get(i).get(j).length() != 0) temp.add(substrings.get(k).get(i).get(j));
+					boolean b1 = false, b2 = false;
+					if (substrings.get(k).get(i).get(j).length() != 0) {
+						temp.add(substrings.get(k).get(i).get(j));
+						b1 = alternation.get(k).get(i).get(j);
+					}
 					if (substrings.get(k).get(i).get(k).length() != 0 && substrings.get(k).get(k).get(j).length() != 0 &&
 							substrings.get(k).get(k).get(k).length() != 0) {
 						String s1 = substrings.get(k).get(i).get(k), s2 = substrings.get(k).get(k).get(j),
 								s = substrings.get(k).get(k).get(k);
-						if (alternation.get(k).get(k).get(k) && !(s1.equals("$") && s2.equals("$")))
-							s = String.format("(%s)", s);
+						if (DEBUG_MODE)
+							System.out.println(k + " " + i + " " + j + "\n"
+									+ alternation.get(k).get(k).get(k) + " " + s1.equals("$") + " " + s2.equals("$"));
+						if (alternation.get(k).get(k).get(k) && !s.equals("$")) {
+							s = removeEpsilonAlternation(s);
+							if (hasAlternation(s)) s = String.format("(%s)", s);
+						}
 						if (alternation.get(k).get(i).get(k) && !(s.equals("$") && s2.equals("$")))
 							s1 = String.format("(%s)", s1);
 						if (alternation.get(k).get(k).get(j) && !(s.equals("$") && s1.equals("$")))
 							s2 = String.format("(%s)", s2);
-						if (s1.equals("$") && !(s.equals("$") && s2.equals("$"))) s1 = "";
-						if (s2.equals("$")) s2 = "";
-						if (s.equals("$"))
+						if (s1.equals("$") && !(s.equals("$") && s2.equals("$")) || !s1.equals("$") && s.equals(s1))
+							s1 = "";
+						if (s2.equals("$") || !s2.equals("$") && s.equals(s2)) s2 = "";
+						if (s.equals("$")) {
 							temp.add(String.format("%s%s", s1, s2));
-						else {
+							b2 = s1.equals("") && alternation.get(k).get(k).get(j) || s2.equals("") && alternation.get(k).get(i).get(k);
+						} else {
 							temp.add(String.format("%s%s*%s", s1, s, s2));
 						}
 					}
+					if (temp.size() > 1) {
+						temp.remove(substrings.get(k).get(i).get(j));
+						if (b2) {
+							String s = temp.iterator().next();
+							temp.add(String.format("(%s)", s));
+						}
+						temp.add(b1 ? String.format("(%s)", substrings.get(k).get(i).get(j)) : substrings.get(k).get(i).get(j));
+					}
 					substrings.get(k + 1).get(i).add(String.join("|", temp));
-					alternation.get(k + 1).get(i).add(temp.size() > 1);
+					if (temp.size() > 1) alternation.get(k + 1).get(i).add(true);
+					else if (temp.size() == 1) {
+						alternation.get(k + 1).get(i).add(temp.iterator().next().equals(substrings.get(k).get(i).get(j)) ? b1 : b2);
+					} else alternation.get(k + 1).get(i).add(true);
 					if (DEBUG_MODE) {
-						System.out.println("temp: " + k + " " + i + " " + j + " " + temp);
-						System.out.println("{" + String.join("|", temp) + "} " + alternation.get(0).get(i).get(j));
+						System.out.printf("temp: %d %d %d %s%n", k, i, j, temp);
+						System.out.printf("{%s} %s\n%n", String.join("|", temp), alternation.get(k + 1).get(i).get(j));
 					}
 				}
 			}
@@ -386,6 +437,7 @@ public class Main {
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);
 		String regExp = in.nextLine();
+		System.out.println(removeEpsilonAlternation(regExp));
 		String testString;
 		//testString = in.nextLine();
 		try {
