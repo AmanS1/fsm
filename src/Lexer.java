@@ -7,7 +7,7 @@ public class Lexer {
 		Brackets		First Priority
 		Kleene Star		Second Priority
 		Concatenation	Third Priority
-		Alternative		Fourth Priority
+		Alternation		Fourth Priority
 		*/
 		List<String> tokens = new ArrayList<>();
 		int left = 0, bracketStack = 0;

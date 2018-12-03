@@ -217,7 +217,7 @@ public class AutomatonUtils {
 		return nd.isAccepting();
 	}
 
-	public static String removeEpsilonAlternation(String s) {
+	private static String removeEpsilonAlternation(String s) {
 		StringBuilder ans = new StringBuilder();
 		List<String> tokens = Lexer.tokenize(s);
 		for (int i = 0; i < tokens.size(); i++) {
@@ -235,15 +235,64 @@ public class AutomatonUtils {
 		return ans.toString();
 	}
 
-	private static boolean hasAlternation(String s) {
+	private static boolean alternationPriority(List<String> tokens) {
+		return tokens.stream().anyMatch(token -> token.equals("|"));
+	}
+
+	private static boolean concatenationPriority(List<String> tokens) {
+		return !alternationPriority(tokens) && tokens.size() > 1 && !tokens.get(1).equals("*");
+	}
+
+	private static boolean checkCombinations(String s, boolean alternation, boolean concatenation) {
 		List<String> tokens = Lexer.tokenize(s);
-		for (String token : tokens) {
-			if (token.equals("|")) return true;
+		return (alternation && alternationPriority(tokens)) || (concatenation && concatenationPriority(tokens));
+	}
+
+	private static boolean checkSubstring(String s, String t) {
+		List<String> tokens = Lexer.tokenize(removeEpsilonAlternation(s)), testTokens = Lexer.tokenize(t), temp;
+		if (tokens.size() == 1) tokens = Lexer.tokenize(removeEpsilonAlternation(tokens.get(0)));
+		if (testTokens.size() == 2 && testTokens.get(1).equals("*")) {
+			testTokens = Lexer.tokenize(removeEpsilonAlternation(testTokens.get(0)));
+			testTokens.add("*");
+		}
+		for (int i = 1; i < testTokens.size(); i++) {
+			if (testTokens.get(i).equals("*")) {
+				temp = new ArrayList<>(testTokens);
+				temp.remove(i);
+				if (temp.equals(tokens)) return true;
+				temp.remove(i - 1);
+				if (temp.equals(tokens)) return true;
+			}
 		}
 		return false;
 	}
 
+	private static String checkSubstring(String s) {
+		List<String> tokens = Lexer.tokenize(s), temp;
+		for (int i = 1; i < tokens.size(); i++) {
+			if (tokens.get(i).equals("*")) {
+				temp = new ArrayList<>(tokens);
+				temp.remove(i);
+				StringBuilder concat = new StringBuilder();
+				for (int j = 0; j < temp.size(); j++) {
+					if (i - 1 != j) concat.append(temp.get(j));
+				}
+				if (temp.remove(i - 1).contentEquals(concat)) {
+					if (tokens.get(i - 1).length() == 1) return tokens.get(i - 1) + "*";
+					else return "(" + tokens.get(i - 1) + ")" + "*";
+				}
+			}
+		}
+		return null;
+	}
+
 	public static String convertAutomatonToRegExp(Automaton aut) {
+		/*
+		Brackets		First Priority
+		Kleene Star		Second Priority
+		Concatenation	Third Priority
+		Alternation		Fourth Priority
+		*/
 		Map<Node, Integer> ids = new HashMap<>();
 		List<Node> nodeById = new ArrayList<>();
 		Set<Character> alphabet = new HashSet<>();
@@ -292,20 +341,26 @@ public class AutomatonUtils {
 							substrings.get(k).get(k).get(k).length() != 0) {
 						String s1 = substrings.get(k).get(i).get(k), s2 = substrings.get(k).get(k).get(j),
 								s = substrings.get(k).get(k).get(k);
-						if (DEBUG_MODE)
-							System.out.println(k + " " + i + " " + j + "\n"
-									+ alternation.get(k).get(k).get(k) + " " + s1.equals("$") + " " + s2.equals("$"));
-						if (alternation.get(k).get(k).get(k) && !s.equals("$")) {
+						if (DEBUG_MODE) System.out.println(k + " " + i + " " + j + "\n"
+								+ alternation.get(k).get(k).get(k) + " " + s1.equals("$") + " " + s2.equals("$"));
+						if (checkCombinations(s, true, true) && !s.equals("$")) {
 							s = removeEpsilonAlternation(s);
-							if (hasAlternation(s)) s = String.format("(%s)", s);
+							if (checkCombinations(s, true, true)) s = String.format("(%s)", s);
 						}
-						if (alternation.get(k).get(i).get(k) && !(s.equals("$") && s2.equals("$")))
+						if (DEBUG_MODE)
+							System.out.println(s + " " + s1 + " " + s2 + " " + removeEpsilonAlternation(s) + " " +
+									removeEpsilonAlternation(s1) + " " + removeEpsilonAlternation(s2));
+						if (!s1.equals("$") && removeEpsilonAlternation(s).equals(removeEpsilonAlternation(s1)) &&
+								!s1.equals(removeEpsilonAlternation(s1))) s1 = "$";
+						if (!s2.equals("$") && removeEpsilonAlternation(s).equals(removeEpsilonAlternation(s2)) &&
+								!s2.equals(removeEpsilonAlternation(s2))) s2 = "$";
+						if (!s1.equals("$") && alternation.get(k).get(i).get(k) && !(s.equals("$") && s2.equals("$")))
 							s1 = String.format("(%s)", s1);
-						if (alternation.get(k).get(k).get(j) && !(s.equals("$") && s1.equals("$")))
+						if (!s2.equals("$") && alternation.get(k).get(k).get(j) && !(s.equals("$") && s1.equals("$")))
 							s2 = String.format("(%s)", s2);
-						if (s1.equals("$") && !(s.equals("$") && s2.equals("$")) || !s1.equals("$") && s.equals(s1))
+						if (s1.equals("$") && !(s.equals("$") && s2.equals("$")))
 							s1 = "";
-						if (s2.equals("$") || !s2.equals("$") && s.equals(s2)) s2 = "";
+						if (s2.equals("$")) s2 = "";
 						if (s.equals("$")) {
 							temp.add(String.format("%s%s", s1, s2));
 							b2 = s1.equals("") && alternation.get(k).get(k).get(j) || s2.equals("") && alternation.get(k).get(i).get(k);
@@ -315,11 +370,25 @@ public class AutomatonUtils {
 					}
 					if (temp.size() > 1) {
 						temp.remove(substrings.get(k).get(i).get(j));
-						if (b2) {
-							String s = temp.iterator().next();
-							temp.add(String.format("(%s)", s));
+						String s = temp.iterator().next();
+						if (substrings.get(k).get(i).get(j).equals("$") && checkSubstring(s) != null) {
+							temp.clear();
+							temp.add(checkSubstring(s));
+						} else if (s.equals("$") && checkSubstring(substrings.get(k).get(i).get(j)) != null) {
+							temp.clear();
+							temp.add(checkSubstring(substrings.get(k).get(i).get(j)));
+						} else if (checkSubstring(substrings.get(k).get(i).get(j), s)) {
+							// do nothing
+						} else if (checkSubstring(s, substrings.get(k).get(i).get(j))) {
+							temp.clear();
+							temp.add(substrings.get(k).get(i).get(j));
+						} else {
+							if (b2) {
+								temp.clear();
+								temp.add(String.format("(%s)", s));
+							}
+							temp.add(b1 ? String.format("(%s)", substrings.get(k).get(i).get(j)) : substrings.get(k).get(i).get(j));
 						}
-						temp.add(b1 ? String.format("(%s)", substrings.get(k).get(i).get(j)) : substrings.get(k).get(i).get(j));
 					}
 					substrings.get(k + 1).get(i).add(String.join("|", temp));
 					if (temp.size() > 1) alternation.get(k + 1).get(i).add(true);

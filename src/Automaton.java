@@ -50,7 +50,7 @@ public class Automaton {
 		ids.put(start, 0);
 		while (!q.isEmpty()) {
 			Node temp = q.remove();
-			if (temp.isAccepting()) acc.append(ids.get(temp)).append("\n");
+			if (temp.isAccepting()) acc.append("q").append(ids.get(temp)).append("\n");
 			Set<Pair<Node, Character>> trns = temp.getTransitions();
 			for (Pair<Node, Character> trn : trns) {
 				alphabet.add(trn.getValue());
@@ -60,16 +60,16 @@ public class Automaton {
 					q.add(trn.getKey());
 				}
 				//ans += ids.get(temp) + ":" + trn.getValue() + ">" + ids.get(trn.getKey()) + "\n"; //String
-				ans.append(ids.get(temp)).append(":").append(trn.getValue()).append(">").append(ids.get(trn.getKey())).append("\n");
+				ans.append("q").append(ids.get(temp)).append(":").append(trn.getValue()).append(">").append("q").append(ids.get(trn.getKey())).append("\n");
 			}
 		}
 		if (DEBUG_MODE) {
 			ans.append("#states\n");
-			for (int i = 0; i < id; i++) ans.append(i).append("\n");
+			for (int i = 0; i < id; i++) ans.append("q").append(i).append("\n");
 			ans.append("#alphabet\n");
 			alphabet.remove('$');
 			for (char c : alphabet) ans.append(c).append("\n");
 		}
-		return "#initial\n0\n" + acc + ans;
+		return "#initial\nq0\n" + acc + ans;
 	}
 }

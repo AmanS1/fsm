@@ -5,7 +5,6 @@ public class Main {
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);
 		String regExp = in.nextLine();
-		System.out.println(AutomatonUtils.removeEpsilonAlternation(regExp));
 		String testString;
 		//testString = in.nextLine();
 		try {
