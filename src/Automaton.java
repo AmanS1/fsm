@@ -2,8 +2,10 @@ import javafx.util.Pair;
 
 import java.util.*;
 
+/**
+ * @author Aman Sariyev
+ */
 public class Automaton {
-	private static final boolean DEBUG_MODE = true;
 	private boolean deterministic;
 
 	public boolean isDeterministic() {
@@ -63,7 +65,7 @@ public class Automaton {
 				ans.append("q").append(ids.get(temp)).append(":").append(trn.getValue()).append(">").append("q").append(ids.get(trn.getKey())).append("\n");
 			}
 		}
-		if (DEBUG_MODE) {
+		if (Fsm.DEBUG_MODE) {
 			ans.append("#states\n");
 			for (int i = 0; i < id; i++) ans.append("q").append(i).append("\n");
 			ans.append("#alphabet\n");

@@ -2,8 +2,10 @@ import javafx.util.Pair;
 
 import java.util.*;
 
+/**
+ * @author Aman Sariyev
+ */
 public class AutomatonUtils {
-	private static final boolean DEBUG_MODE = true;
 
 	public static Automaton convertRegExpToAutomaton(String regExp) {
 		Parser.checkRegExp(regExp);
@@ -81,7 +83,7 @@ public class AutomatonUtils {
 		if (acc) ans.getStart().setAccepting(true);
 		while (!q.isEmpty()) {
 			Set<Integer> temp = q.remove();
-			if (DEBUG_MODE) System.out.println("New State: " + temp);
+			if (Fsm.DEBUG_MODE) System.out.println("New State: " + temp);
 			for (Character c : alphabet) {
 				genSt = new HashSet<>();
 				for (Integer it : temp) {
@@ -101,7 +103,7 @@ public class AutomatonUtils {
 						tempNode = new Node();
 						nodeBySet.put(genSt, tempNode);
 					} else tempNode = nodeBySet.get(genSt);
-					if (DEBUG_MODE) System.out.println("Letter: " + c + "\n" + genSt);
+					if (Fsm.DEBUG_MODE) System.out.println("Letter: " + c + "\n" + genSt);
 					nodeBySet.get(temp).addTransition(tempNode, c);
 					if (acc) tempNode.setAccepting(true);
 				}
@@ -153,7 +155,7 @@ public class AutomatonUtils {
 					if (!distinguishable.contains(new Pair<>(i, j)) && !distinguishable.contains(new Pair<>(j, i))) {
 						visited.add(j);
 						rev = nodeById.get(j).getRevTransitions();
-						if (DEBUG_MODE) System.out.println(i + " = " + j + " Concatenation");
+						if (Fsm.DEBUG_MODE) System.out.println(i + " = " + j + " Concatenation");
 						for (char c : alphabet) {
 							if (rev.get(c) == null) continue;
 							List<Node> temp = new ArrayList<>(rev.get(c));
@@ -171,7 +173,7 @@ public class AutomatonUtils {
 				}
 			}
 		}
-		if (DEBUG_MODE) System.out.println("DIFF: {" + distinguishable + "} :END");
+		if (Fsm.DEBUG_MODE) System.out.println("DIFF: {" + distinguishable + "} :END");
 		return aut;
 	}
 
@@ -191,7 +193,7 @@ public class AutomatonUtils {
 
 	static Automaton simplifyAutomaton(Automaton aut) {
 		addDummyState(aut);
-		if (DEBUG_MODE) {
+		if (Fsm.DEBUG_MODE) {
 			aut = determineAutomaton(aut);
 			System.out.println(aut.toString());
 			return removeRedundancyAutomaton(aut);
@@ -199,7 +201,7 @@ public class AutomatonUtils {
 		return removeRedundancyAutomaton(determineAutomaton(aut));
 	}
 
-	private static boolean checkAcceptability(Automaton aut, String input) throws Exception {
+	public static boolean checkAcceptability(Automaton aut, String input) throws Exception {
 		if (!aut.isDeterministic()) throw new Exception("This automaton is not deterministic");
 		boolean trans;
 		Node nd = aut.getStart();
@@ -322,7 +324,7 @@ public class AutomatonUtils {
 				if (i == j) temp.add("$");
 				substrings.get(0).get(i).add(String.join("|", temp));
 				alternation.get(0).get(i).add(temp.size() > 1);
-				if (DEBUG_MODE) {
+				if (Fsm.DEBUG_MODE) {
 					System.out.println("temp: " + i + " " + j + " " + temp);
 					System.out.println("{" + String.join("|", temp) + "} " + alternation.get(0).get(i).get(j));
 				}
@@ -341,13 +343,13 @@ public class AutomatonUtils {
 							substrings.get(k).get(k).get(k).length() != 0) {
 						String s1 = substrings.get(k).get(i).get(k), s2 = substrings.get(k).get(k).get(j),
 								s = substrings.get(k).get(k).get(k);
-						if (DEBUG_MODE) System.out.println(k + " " + i + " " + j + "\n"
+						if (Fsm.DEBUG_MODE) System.out.println(k + " " + i + " " + j + "\n"
 								+ alternation.get(k).get(k).get(k) + " " + s1.equals("$") + " " + s2.equals("$"));
 						if (checkCombinations(s, true, true) && !s.equals("$")) {
 							s = removeEpsilonAlternation(s);
 							if (checkCombinations(s, true, true)) s = String.format("(%s)", s);
 						}
-						if (DEBUG_MODE)
+						if (Fsm.DEBUG_MODE)
 							System.out.println(s + " " + s1 + " " + s2 + " " + removeEpsilonAlternation(s) + " " +
 									removeEpsilonAlternation(s1) + " " + removeEpsilonAlternation(s2));
 						if (!s1.equals("$") && removeEpsilonAlternation(s).equals(removeEpsilonAlternation(s1)) &&
@@ -395,7 +397,7 @@ public class AutomatonUtils {
 					else if (temp.size() == 1) {
 						alternation.get(k + 1).get(i).add(temp.iterator().next().equals(substrings.get(k).get(i).get(j)) ? b1 : b2);
 					} else alternation.get(k + 1).get(i).add(true);
-					if (DEBUG_MODE) {
+					if (Fsm.DEBUG_MODE) {
 						System.out.printf("temp: %d %d %d %s%n", k, i, j, temp);
 						System.out.printf("{%s} %s\n%n", String.join("|", temp), alternation.get(k + 1).get(i).get(j));
 					}

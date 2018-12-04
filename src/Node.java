@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * @author Aman Sariyev
+ */
 public class Node {
 	private boolean accepting;
 	private Set<Pair<Node, Character>> transitions;

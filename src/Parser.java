@@ -1,5 +1,8 @@
 import java.util.List;
 
+/**
+ * @author Aman Sariyev
+ */
 public class Parser {
 	public static Automaton convertTokensToAutomaton(List<String> tokens) {
 		Automaton aut, aut1, aut2;

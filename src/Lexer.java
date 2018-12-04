@@ -1,6 +1,9 @@
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Aman Sariyev
+ */
 public class Lexer {
 	public static List<String> tokenize(String regExp) {
 		/*
