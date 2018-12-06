@@ -11,7 +11,7 @@ public class AutomatonUtils {
 		if (regExp.length() == 1) {
 			return new Automaton(regExp.charAt(0));
 		}
-		List<String> tokens = Lexer.tokenizeRegExp(regExp);
+		List<String> tokens = Lexer.tokenizeRegExp(regExp, false);
 		return Parser.convertRegExpTokensToAutomaton(tokens);
 	}
 
@@ -202,7 +202,7 @@ public class AutomatonUtils {
 
 	private static String removeEpsilonAlternation(String s) {
 		StringBuilder ans = new StringBuilder();
-		List<String> tokens = Lexer.tokenizeRegExp(s);
+		List<String> tokens = Lexer.tokenizeRegExp(s, true);
 		for (int i = 0; i < tokens.size(); i++) {
 			if (tokens.get(i).equals("$") && (i == 0 || tokens.get(i - 1).equals("|")) && (i + 1 >= tokens.size() || tokens.get(i + 1).equals("|"))) {
 				if (i + 1 < tokens.size() && tokens.get(i + 1).equals("|")) {
@@ -227,15 +227,15 @@ public class AutomatonUtils {
 	}
 
 	private static boolean checkCombinations(String s, boolean alternation, boolean concatenation) {
-		List<String> tokens = Lexer.tokenizeRegExp(s);
+		List<String> tokens = Lexer.tokenizeRegExp(s, false);
 		return (alternation && alternationPriority(tokens)) || (concatenation && concatenationPriority(tokens));
 	}
 
 	private static boolean checkSubstring(String s, String t) {
-		List<String> tokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(s)), testTokens = Lexer.tokenizeRegExp(t), temp;
-		if (tokens.size() == 1) tokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(tokens.get(0)));
+		List<String> tokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(s), false), testTokens = Lexer.tokenizeRegExp(t, false), temp;
+		if (tokens.size() == 1) tokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(tokens.get(0)), false);
 		if (testTokens.size() == 2 && testTokens.get(1).equals("*")) {
-			testTokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(testTokens.get(0)));
+			testTokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(testTokens.get(0)), false);
 			testTokens.add("*");
 		}
 		for (int i = 1; i < testTokens.size(); i++) {
@@ -251,7 +251,7 @@ public class AutomatonUtils {
 	}
 
 	private static String checkSubstring(String s) {
-		List<String> tokens = Lexer.tokenizeRegExp(s), temp;
+		List<String> tokens = Lexer.tokenizeRegExp(s, false), temp;
 		for (int i = 1; i < tokens.size(); i++) {
 			if (tokens.get(i).equals("*")) {
 				temp = new ArrayList<>(tokens);

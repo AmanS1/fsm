@@ -99,10 +99,8 @@ public class Parser {
 				nodes.get(tokens.get(i)).setAccepting(true);
 				fins.add(tokens.get(i));
 			} else if (cat == 2) {
-				System.out.println(tokens.subList(i, i + 5));
 				if (!nodes.containsKey(tokens.get(i))) nodes.put(tokens.get(i), new Node());
 				if (!nodes.containsKey(tokens.get(i + 4))) nodes.put(tokens.get(i + 4), new Node());
-				System.out.println(nodes.get(tokens.get(i)).getTransitions());
 				nodes.get(tokens.get(i)).addTransition(nodes.get(tokens.get(i + 4)), tokens.get(i + 2).charAt(0));
 				i += 4;
 			}
@@ -111,7 +109,6 @@ public class Parser {
 		else for (String s : inits) aut.getStart().addTransition(nodes.get(s), '$');
 		if (fins.size() == 1) aut.setFinish(nodes.get(inits.iterator().next()));
 		else for (String s : inits) nodes.get(s).addTransition(aut.getFinish(), '$');
-		System.out.println(aut.getStart());
 		return aut;
 	}
 

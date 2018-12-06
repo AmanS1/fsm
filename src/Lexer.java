@@ -5,7 +5,7 @@ import java.util.List;
  * @author Aman Sariyev
  */
 public class Lexer {
-	public static List<String> tokenizeRegExp(String regExp) {
+	public static List<String> tokenizeRegExp(String regExp, boolean leaveParentheses) {
 		/*
 		Brackets		First Priority
 		Kleene Star		Second Priority
@@ -21,7 +21,8 @@ public class Lexer {
 			} else if (regExp.charAt(i) == ')') {
 				bracketStack--;
 				if (bracketStack == 0) {
-					tokens.add(regExp.substring(left, i));
+					if (leaveParentheses) tokens.add(String.format("(%s)", regExp.substring(left, i)));
+					else tokens.add(regExp.substring(left, i));
 				}
 			} else if (bracketStack == 0) {
 				tokens.add("" + regExp.charAt(i));
