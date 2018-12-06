@@ -4,12 +4,21 @@
  * and open the template in the editor.
  */
 
+import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
+import com.mxgraph.swing.mxGraphComponent;
+import com.mxgraph.view.mxGraph;
+import javafx.util.Pair;
+
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 
 /**
@@ -44,6 +53,7 @@ public class FsmGui extends javax.swing.JPanel {
 		jTextField1 = new javax.swing.JTextField();
 		jTextField2 = new javax.swing.JTextField();
 		jScrollPane1 = new javax.swing.JScrollPane();
+		jScrollPane2 = new javax.swing.JScrollPane();
 		jTextArea1 = new javax.swing.JTextArea();
 		jButton1 = new javax.swing.JButton();
 		jButton2 = new javax.swing.JButton();
@@ -65,12 +75,6 @@ public class FsmGui extends javax.swing.JPanel {
 				jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
 						.addGap(0, 0, Short.MAX_VALUE)
 		);
-
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 4;
-		gridBagConstraints.gridy = 0;
-		gridBagConstraints.gridheight = 10;
-		add(jPanel1, gridBagConstraints);
 
 		jLabel1.setText("Import from File");
 		gridBagConstraints = new java.awt.GridBagConstraints();
@@ -115,6 +119,11 @@ public class FsmGui extends javax.swing.JPanel {
 		add(jTextField1, gridBagConstraints);
 
 		jTextField2.setColumns(20);
+		jTextField2.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyReleased(java.awt.event.KeyEvent evt) {
+				jTextField2KeyReleased(evt);
+			}
+		});
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = 9;
@@ -125,11 +134,21 @@ public class FsmGui extends javax.swing.JPanel {
 		jTextArea1.setRows(20);
 		jScrollPane1.setViewportView(jTextArea1);
 
+		jScrollPane2.setViewportView(jPanel1);
+
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = 5;
 		gridBagConstraints.gridwidth = 3;
 		add(jScrollPane1, gridBagConstraints);
+
+		gridBagConstraints = new java.awt.GridBagConstraints();
+		gridBagConstraints.gridx = 4;
+		gridBagConstraints.gridy = 0;
+		gridBagConstraints.gridheight = 11;
+		add(jScrollPane2, gridBagConstraints);
+
+		jScrollPane2.setPreferredSize(new java.awt.Dimension(600, 600));
 
 		jButton1.setText("RegExp");
 		jButton1.addActionListener(this::jButton1ActionPerformed);
@@ -228,18 +247,51 @@ public class FsmGui extends javax.swing.JPanel {
 		}
 	}//GEN-LAST:event_jButton2ActionPerformed
 
-	private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-		aut = AutomatonUtils.convertRegExpToAutomaton(jTextField1.getText());
-		jTextArea1.setText(aut.toString());
+	private void jButton3ActionPerformed(ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+		List<Object> err = Parser.checkRegExp(jTextField1.getText());
+		Highlighter highlighter = jTextField1.getHighlighter();
+		Highlighter.Highlight[] highlights = highlighter.getHighlights();
+		for (Highlighter.Highlight highlight : highlights) highlighter.removeHighlight(highlight);
+		if (err == null) {
+			aut = AutomatonUtils.convertRegExpToAutomaton(jTextField1.getText());
+			jTextArea1.setText(aut.toString());
+			checkAcceptability(aut, jTextField2.getText());
+		} else {
+			JOptionPane.showMessageDialog(null, err.get(0));
+			Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.pink);
+			try {
+				highlighter.addHighlight((Integer) err.get(1), (Integer) err.get(2), painter);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+		}
+
 	}//GEN-LAST:event_jButton3ActionPerformed
 
 	private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
 		// TODO add your handling code here:
+		Highlighter highlighter = jTextArea1.getHighlighter();
+		Highlighter.Highlight[] highlights = highlighter.getHighlights();
+		for (Highlighter.Highlight highlight : highlights) highlighter.removeHighlight(highlight);
+		//aut = AutomatonUtils.convertStateOutlineToAutomaton(jTextArea1.getText());
+		jTextField1.setText("");
+		checkAcceptability(aut, jTextField2.getText());
+
+		Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.pink);
+		int p0 = jTextArea1.getText().indexOf("world");
+		int p1 = p0 + "world".length();
+		try {
+			highlighter.addHighlight(p0, p1, painter);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		//JOptionPane.showMessageDialog(null, jScrollPane1);
 	}//GEN-LAST:event_jButton4ActionPerformed
 
 	private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
 		aut = AutomatonUtils.simplifyAutomaton(aut);
 		jTextArea1.setText(aut.toString());
+		checkAcceptability(aut, jTextField2.getText());
 	}//GEN-LAST:event_jButton5ActionPerformed
 
 	private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
@@ -247,13 +299,87 @@ public class FsmGui extends javax.swing.JPanel {
 	}//GEN-LAST:event_jButton6ActionPerformed
 
 	private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
-		try {
-			jTextField2.setText(AutomatonUtils.checkAcceptability(aut, jTextField2.getText()) ? "YES" : "NO");
-		} catch (Exception e) {
-			JOptionPane.showMessageDialog(null, e);
-		}
+		JOptionPane.showMessageDialog(null, checkAcceptability(aut, jTextField2.getText()) ? "YES" : "NO");
 	}//GEN-LAST:event_jButton7ActionPerformed
 
+	private void jTextField2KeyReleased(java.awt.event.KeyEvent evt) {
+		checkAcceptability(aut, jTextField2.getText());
+	}
+
+	private boolean checkAcceptability(Automaton aut, String input) {
+		boolean acc = false;
+		Map<Node, Integer> ids = new HashMap<>();
+		List<Node> nodeById = new ArrayList<>();
+		Set<Character> alphabet = new HashSet<>();
+		AutomatonUtils.enumerateAutomaton(aut, ids, nodeById, alphabet);
+		Queue<Pair<Integer, String>> q = new LinkedList<>();
+		Set<Pair<Integer, String>> visited = new HashSet<>();
+		Set<Integer> colored = new HashSet<>();
+		int x;
+		String y;
+		q.add(new Pair<>(0, input));
+		visited.add(new Pair<>(0, input));
+		while (!q.isEmpty()) {
+			x = q.peek().getKey();
+			y = q.remove().getValue();
+			visited.remove(new Pair<>(x, y));
+			for (Pair<Node, Character> j : nodeById.get(x).getTransitions()) {
+				if (j.getValue() == '$' && visited.add(new Pair<>(ids.get(j.getKey()), y)))
+					q.add(new Pair<>(ids.get(j.getKey()), y));
+			}
+			if (y.length() == 0) {
+				colored.add(x);
+				acc |= nodeById.get(x).isAccepting();
+			} else {
+				for (Pair<Node, Character> j : nodeById.get(x).getTransitions()) {
+					if (j.getValue() == y.charAt(0) && visited.add(new Pair<>(ids.get(j.getKey()), y.substring(1))))
+						q.add(new Pair<>(ids.get(j.getKey()), y.substring(1)));
+				}
+			}
+		}
+		drawFsm(new HashSet<>(colored));
+		return acc;
+	}
+
+	private void drawFsm(Set<Integer> colored) {
+		final mxGraph graph = new mxGraph();
+		final Object parent = graph.getDefaultParent();
+		graph.getModel().beginUpdate();
+		Map<Integer, Object> vertices = new HashMap<>();
+		Map<Node, Integer> ids = new HashMap<>();
+		List<Node> nodeById = new ArrayList<>();
+		Set<Character> alphabet = new HashSet<>();
+		Set<String> temp;
+		AutomatonUtils.enumerateAutomaton(aut, ids, nodeById, alphabet);
+		for (int i = 0; i < ids.size(); i++) {
+			vertices.put(i, graph.insertVertex(parent, null, String.format("q%d", i), 0, 0, 50, 30,
+					String.format("defaultVertex;shape=%s%s", nodeById.get(i).isAccepting() ? "doubleEllipse" : "ellipse",
+							(colored.contains(i)) ? ";fillColor=pink" : "")));
+		}
+		for (int i = 0; i < ids.size(); i++) {
+			for (int j = 0; j < ids.size(); j++) {
+				temp = new HashSet<>();
+				Set<Pair<Node, Character>> trns = nodeById.get(i).getTransitions();
+				for (Pair<Node, Character> trn : trns) {
+					if (ids.get(trn.getKey()) == j) {
+						temp.add(String.valueOf(trn.getValue()));
+					}
+				}
+				if (!temp.isEmpty())
+					graph.insertEdge(parent, null, String.join(",", temp), vertices.get(i), vertices.get(j),
+							"defaultEdge;align=left");
+			}
+		}
+		new mxHierarchicalLayout(graph).execute(graph.getDefaultParent());
+		graph.getModel().endUpdate();
+		mxGraphComponent graphComponent = new mxGraphComponent(graph);
+		jPanel1.setLayout(new FlowLayout());
+		if (jPanel1.getComponentCount() > 0) jPanel1.remove(0);
+		jPanel1.add(graphComponent);
+		jPanel1.revalidate();
+		jPanel1.repaint();
+		((JFrame) this.getRootPane().getParent()).pack();
+	}
 
 	// Variables declaration - do not modify//GEN-BEGIN:variables
 	private javax.swing.JButton jButton1;
@@ -270,6 +396,7 @@ public class FsmGui extends javax.swing.JPanel {
 	private javax.swing.JLabel jLabel5;
 	private javax.swing.JPanel jPanel1;
 	private javax.swing.JScrollPane jScrollPane1;
+	private javax.swing.JScrollPane jScrollPane2;
 	private javax.swing.JTextArea jTextArea1;
 	private javax.swing.JTextField jTextField1;
 	private javax.swing.JTextField jTextField2;

@@ -5,7 +5,7 @@ import java.util.List;
  * @author Aman Sariyev
  */
 public class Lexer {
-	public static List<String> tokenize(String regExp) {
+	public static List<String> tokenizeRegExp(String regExp) {
 		/*
 		Brackets		First Priority
 		Kleene Star		Second Priority

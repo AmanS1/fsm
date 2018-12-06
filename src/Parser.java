@@ -1,4 +1,6 @@
-import java.util.List;
+import java.util.*;
+
+import static java.util.Arrays.asList;
 
 /**
  * @author Aman Sariyev
@@ -47,32 +49,34 @@ public class Parser {
 		return aut;
 	}
 
-	public static void checkRegExp(String regExp) {
-		int bracketStack = 0;
-		try {
-			for (int i = 0; i < regExp.length(); i++) {
-				if (i + 1 < regExp.length() && regExp.charAt(i) == '*' && regExp.charAt(i + 1) == '*')
-					throw new Exception("Empty subexpression at index " + (i + 1));
-				if (i + 1 < regExp.length() && regExp.charAt(i) == '*' && regExp.charAt(i + 1) == '*')
-					throw new Exception("Kleene Star tautology at index " + (i + 1));
-				if (i + 1 < regExp.length() && (regExp.charAt(i) == '(' || regExp.charAt(i) == '|') && regExp.charAt(i + 1) == '*')
-					throw new Exception("Empty subexpression with Kleene Star at index " + (i + 1));
-				if (i + 1 < regExp.length() && (regExp.charAt(i) == '(' || regExp.charAt(i) == '|') && regExp.charAt(i + 1) == '|')
-					throw new Exception("Empty subexpression with Alternation at index " + (i + 1));
-				if (i + 1 < regExp.length() && regExp.charAt(i + 1) == ')' && regExp.charAt(i) == '|')
-					throw new Exception("Empty subexpression with Alternation at index " + (i + 1));
-				if (regExp.charAt(i) == '(') bracketStack++;
-				else if (regExp.charAt(i) == ')') {
-					if (bracketStack == 0) throw new Exception("Bracket imbalance at index " + (i + 1));
-					bracketStack--;
-				}
-			}
-			if (bracketStack != 0) throw new Exception("Bracket imbalance with unclosed opening bracket");
-			if (regExp.charAt(0) == '|') throw new Exception("Empty subexpression with Alternation at index " + 1);
-			if (regExp.charAt(regExp.length() - 1) == '|')
-				throw new Exception("Empty subexpression with Alternation at index " + regExp.length());
-		} catch (Exception e) {
-			System.err.println(e);
+	public static List<Object> checkRegExp(String regExp) {
+		Deque<Integer> bracketStack = new ArrayDeque<>();
+		if (regExp.length() == 0) {
+			return asList("Empty string", 0, 0);
 		}
+		for (int i = 0; i < regExp.length(); i++) {
+			if (i + 1 < regExp.length() && regExp.charAt(i) == '*' && regExp.charAt(i + 1) == '*')
+				return asList("Empty subexpression with Kleene Star", i, i + 2);
+			if (i + 1 < regExp.length() && (regExp.charAt(i) == '(' || regExp.charAt(i) == '|') && regExp.charAt(i + 1) == '*')
+				return asList("Empty subexpression with Kleene Star", i, i + 2);
+			if (i + 1 < regExp.length() && (regExp.charAt(i) == '(' || regExp.charAt(i) == '|') && regExp.charAt(i + 1) == '|')
+				return asList("Empty subexpression with Alternation", i, i + 2);
+			if (i + 1 < regExp.length() && regExp.charAt(i) == '|' && regExp.charAt(i + 1) == ')')
+				return asList("Empty subexpression with Alternation", i, i + 2);
+			if (i + 1 < regExp.length() && regExp.charAt(i) == '(' && regExp.charAt(i + 1) == ')')
+				return asList("Empty subexpression with parentheses", i, i + 2);
+			if (regExp.charAt(i) == '(') bracketStack.addLast(i);
+			else if (regExp.charAt(i) == ')') {
+				if (bracketStack.size() == 0) return asList("Bracket imbalance", i, i + 1);
+				bracketStack.removeLast();
+			}
+		}
+		if (bracketStack.size() > 0) {
+			return asList("Bracket imbalance with unclosed opening bracket", bracketStack.getLast(), bracketStack.getLast() + 1);
+		}
+		if (regExp.charAt(0) == '|') return asList("Empty subexpression with Alternation", 0, 1);
+		if (regExp.charAt(regExp.length() - 1) == '|')
+			return asList("Empty subexpression with Alternation", regExp.length() - 1, regExp.length());
+		return null;
 	}
 }

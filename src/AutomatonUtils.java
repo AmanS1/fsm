@@ -8,15 +8,14 @@ import java.util.*;
 public class AutomatonUtils {
 
 	public static Automaton convertRegExpToAutomaton(String regExp) {
-		Parser.checkRegExp(regExp);
 		if (regExp.length() == 1) {
 			return new Automaton(regExp.charAt(0));
 		}
-		List<String> tokens = Lexer.tokenize(regExp);
+		List<String> tokens = Lexer.tokenizeRegExp(regExp);
 		return Parser.convertTokensToAutomaton(tokens);
 	}
 
-	private static void enumerateAutomaton(Automaton aut, Map<Node, Integer> ids, List<Node> nodeById, Set<Character> alphabet) {
+	public static void enumerateAutomaton(Automaton aut, Map<Node, Integer> ids, List<Node> nodeById, Set<Character> alphabet) {
 		Queue<Node> q = new LinkedList<>();
 		int id = 1;
 		q.add(aut.getStart());
@@ -201,27 +200,9 @@ public class AutomatonUtils {
 		return removeRedundancyAutomaton(determineAutomaton(aut));
 	}
 
-	public static boolean checkAcceptability(Automaton aut, String input) throws Exception {
-		if (!aut.isDeterministic()) throw new Exception("This automaton is not deterministic");
-		boolean trans;
-		Node nd = aut.getStart();
-		for (int i = 0; i < input.length(); i++) {
-			trans = false;
-			for (Pair<Node, Character> j : nd.getTransitions()) {
-				if (j.getValue() == input.charAt(i)) {
-					nd = j.getKey();
-					trans = true;
-					break;
-				}
-			}
-			if (!trans) return false;
-		}
-		return nd.isAccepting();
-	}
-
 	private static String removeEpsilonAlternation(String s) {
 		StringBuilder ans = new StringBuilder();
-		List<String> tokens = Lexer.tokenize(s);
+		List<String> tokens = Lexer.tokenizeRegExp(s);
 		for (int i = 0; i < tokens.size(); i++) {
 			if (tokens.get(i).equals("$") && (i == 0 || tokens.get(i - 1).equals("|")) && (i + 1 >= tokens.size() || tokens.get(i + 1).equals("|"))) {
 				if (i + 1 < tokens.size() && tokens.get(i + 1).equals("|")) {
@@ -246,15 +227,15 @@ public class AutomatonUtils {
 	}
 
 	private static boolean checkCombinations(String s, boolean alternation, boolean concatenation) {
-		List<String> tokens = Lexer.tokenize(s);
+		List<String> tokens = Lexer.tokenizeRegExp(s);
 		return (alternation && alternationPriority(tokens)) || (concatenation && concatenationPriority(tokens));
 	}
 
 	private static boolean checkSubstring(String s, String t) {
-		List<String> tokens = Lexer.tokenize(removeEpsilonAlternation(s)), testTokens = Lexer.tokenize(t), temp;
-		if (tokens.size() == 1) tokens = Lexer.tokenize(removeEpsilonAlternation(tokens.get(0)));
+		List<String> tokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(s)), testTokens = Lexer.tokenizeRegExp(t), temp;
+		if (tokens.size() == 1) tokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(tokens.get(0)));
 		if (testTokens.size() == 2 && testTokens.get(1).equals("*")) {
-			testTokens = Lexer.tokenize(removeEpsilonAlternation(testTokens.get(0)));
+			testTokens = Lexer.tokenizeRegExp(removeEpsilonAlternation(testTokens.get(0)));
 			testTokens.add("*");
 		}
 		for (int i = 1; i < testTokens.size(); i++) {
@@ -270,7 +251,7 @@ public class AutomatonUtils {
 	}
 
 	private static String checkSubstring(String s) {
-		List<String> tokens = Lexer.tokenize(s), temp;
+		List<String> tokens = Lexer.tokenizeRegExp(s), temp;
 		for (int i = 1; i < tokens.size(); i++) {
 			if (tokens.get(i).equals("*")) {
 				temp = new ArrayList<>(tokens);
@@ -301,7 +282,6 @@ public class AutomatonUtils {
 		enumerateAutomaton(aut, ids, nodeById, alphabet);
 		Set<String> temp;
 		int n = ids.size();
-		enumerateAutomaton(aut, ids, nodeById, alphabet);
 		List<List<List<String>>> substrings = new ArrayList<>();
 		List<List<List<Boolean>>> alternation = new ArrayList<>();
 		for (int k = 0; k < n + 1; k++) {
