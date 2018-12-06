@@ -12,7 +12,7 @@ public class AutomatonUtils {
 			return new Automaton(regExp.charAt(0));
 		}
 		List<String> tokens = Lexer.tokenizeRegExp(regExp);
-		return Parser.convertTokensToAutomaton(tokens);
+		return Parser.convertRegExpTokensToAutomaton(tokens);
 	}
 
 	public static void enumerateAutomaton(Automaton aut, Map<Node, Integer> ids, List<Node> nodeById, Set<Character> alphabet) {

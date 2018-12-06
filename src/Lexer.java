@@ -29,4 +29,39 @@ public class Lexer {
 		}
 		return tokens;
 	}
+
+	public static List<String> tokenizeDesc(String text) {
+		List<String> tokens = new ArrayList<>();
+		StringBuilder cur = new StringBuilder();
+		for (int i = 0; i < text.length(); i++) {
+			if (text.charAt(i) == '#' || text.charAt(i) == ':' || text.charAt(i) == '>') {
+				if (cur.length() > 0) tokens.add(cur.toString());
+				cur = new StringBuilder();
+				tokens.add(Character.toString(text.charAt(i)));
+			} else if (text.charAt(i) == '\r' || text.charAt(i) == '\n' || text.charAt(i) == ' ') {
+				if (cur.length() > 0) tokens.add(cur.toString());
+				cur = new StringBuilder();
+			} else cur.append(text.charAt(i));
+		}
+		if (cur.length() > 0) tokens.add(cur.toString());
+		return tokens;
+	}
+
+	public static List<Integer> tokenizeDescPos(String text) {
+		List<Integer> tokensPos = new ArrayList<>();
+		StringBuilder cur = new StringBuilder();
+		for (int i = 0; i < text.length(); i++) {
+			if (text.charAt(i) == '#' || text.charAt(i) == ':' || text.charAt(i) == '>') {
+				if (cur.length() > 0) tokensPos.add(i - cur.length());
+				cur = new StringBuilder();
+				tokensPos.add(i);
+			} else if (text.charAt(i) == '\r' || text.charAt(i) == '\n' || text.charAt(i) == ' ') {
+				if (cur.length() > 0) tokensPos.add(i - cur.length());
+				cur = new StringBuilder();
+			} else cur.append(text.charAt(i));
+		}
+		if (cur.length() > 0) tokensPos.add(text.length() - cur.length());
+		tokensPos.add(text.length());
+		return tokensPos;
+	}
 }

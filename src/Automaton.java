@@ -18,6 +18,10 @@ public class Automaton {
 
 	private Node start, finish;
 
+	public void setStart(Node start) {
+		this.start = start;
+	}
+
 	public Node getStart() {
 		return start;
 	}

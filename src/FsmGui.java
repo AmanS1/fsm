@@ -90,7 +90,7 @@ public class FsmGui extends javax.swing.JPanel {
 		gridBagConstraints.gridwidth = 3;
 		add(jLabel2, gridBagConstraints);
 
-		jLabel3.setText("Automaton");
+		jLabel3.setText("Automaton ($ = Epsilon)");
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = 4;
@@ -257,35 +257,36 @@ public class FsmGui extends javax.swing.JPanel {
 			jTextArea1.setText(aut.toString());
 			checkAcceptability(aut, jTextField2.getText());
 		} else {
-			JOptionPane.showMessageDialog(null, err.get(0));
 			Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.pink);
 			try {
 				highlighter.addHighlight((Integer) err.get(1), (Integer) err.get(2), painter);
 			} catch (BadLocationException e) {
 				e.printStackTrace();
 			}
+			JOptionPane.showMessageDialog(null, err.get(0));
 		}
-
 	}//GEN-LAST:event_jButton3ActionPerformed
 
 	private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-		// TODO add your handling code here:
 		Highlighter highlighter = jTextArea1.getHighlighter();
 		Highlighter.Highlight[] highlights = highlighter.getHighlights();
 		for (Highlighter.Highlight highlight : highlights) highlighter.removeHighlight(highlight);
-		//aut = AutomatonUtils.convertStateOutlineToAutomaton(jTextArea1.getText());
-		jTextField1.setText("");
-		checkAcceptability(aut, jTextField2.getText());
-
-		Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.pink);
-		int p0 = jTextArea1.getText().indexOf("world");
-		int p1 = p0 + "world".length();
-		try {
-			highlighter.addHighlight(p0, p1, painter);
-		} catch (Exception e) {
-			e.printStackTrace();
+		List<String> tokens = Lexer.tokenizeDesc(jTextArea1.getText());
+		List<Integer> tokensPos = Lexer.tokenizeDescPos(jTextArea1.getText());
+		List<Object> err = Parser.checkDesc(tokens);
+		if (err == null) {
+			aut = Parser.convertDescTokensToAutomaton(tokens);
+			jTextField1.setText("");
+			checkAcceptability(aut, jTextField2.getText());
+		} else {
+			Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.pink);
+			try {
+				highlighter.addHighlight(tokensPos.get((Integer) err.get(1)), tokensPos.get((Integer) err.get(2)), painter);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			JOptionPane.showMessageDialog(null, err.get(0));
 		}
-		//JOptionPane.showMessageDialog(null, jScrollPane1);
 	}//GEN-LAST:event_jButton4ActionPerformed
 
 	private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
@@ -322,7 +323,6 @@ public class FsmGui extends javax.swing.JPanel {
 		while (!q.isEmpty()) {
 			x = q.peek().getKey();
 			y = q.remove().getValue();
-			visited.remove(new Pair<>(x, y));
 			for (Pair<Node, Character> j : nodeById.get(x).getTransitions()) {
 				if (j.getValue() == '$' && visited.add(new Pair<>(ids.get(j.getKey()), y)))
 					q.add(new Pair<>(ids.get(j.getKey()), y));
